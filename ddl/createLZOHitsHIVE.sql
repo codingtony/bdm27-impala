@@ -1,6 +1,9 @@
+
 SET mapreduce.output.fileoutputformat.compress=true;
 SET hive.exec.compress.output=true;
 SET mapreduce.output.fileoutputformat.compress.codec=com.hadoop.compression.lzo.LzopCodec;
+
+DROP TABLE IF EXISTS bdm27.hitsLZO;
 
 CREATE EXTERNAL TABLE IF NOT EXISTS bdm27.hitsLZO (
 	day INT,
@@ -51,6 +54,8 @@ ALTER TABLE hitsLZO ADD PARTITION (year=2013,month=10) LOCATION "/user/impala/bd
 ALTER TABLE hitsLZO ADD PARTITION (year=2013,month=11) LOCATION "/user/impala/bdm-lzo/2013/11";
 ALTER TABLE hitsLZO ADD PARTITION (year=2013,month=12) LOCATION "/user/impala/bdm-lzo/2013/12";
 
---REFRESH bdm27.hitsLZO;
 
---COMPUTE STATS bdm27.hitsLZO;
+-- DONT FORGET TO RUN THIS IN IMPALA SHELL!!!
+-- 	INVALIDATE METADATA
+-- 	REFRESH bdm27.hitsLZO;
+--	COMPUTE STATS bdm27.hitsLZO;
