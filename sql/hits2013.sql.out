@@ -1,0 +1,266 @@
+Starting Impala Shell without Kerberos authentication
+Connected to impala:21000
+Server version: impalad version 1.4.0-cdh4-INTERNAL RELEASE (build 08fa3466dd8914356494919534641842ff3953e0)
+Query: use bdm27
+Query: explain select count(day) from hits2013 where Year = 2013 and Month = 7
++---------------------------------------------------------+
+| Explain String                                          |
++---------------------------------------------------------+
+| Estimated Per-Host Requirements: Memory=4.44GB VCores=1 |
+|                                                         |
+| 03:AGGREGATE [MERGE FINALIZE]                           |
+| |  output: sum(count(day))                              |
+| |                                                       |
+| 02:EXCHANGE [UNPARTITIONED]                             |
+| |                                                       |
+| 01:AGGREGATE                                            |
+| |  output: count(day)                                   |
+| |                                                       |
+| 00:SCAN HDFS [bdm27.hits2013]                           |
+|    partitions=1/12 size=28.39GB                         |
++---------------------------------------------------------+
+Returned 12 row(s) in 0.04s
+Query: select count(day) from hits2013 where Year = 2013 and Month = 7
++------------+
+| count(day) |
++------------+
+| 413600217  |
++------------+
+Returned 1 row(s) in 5.25s
+Query: explain select count(day) from hits2013  where Year = 2013
++---------------------------------------------------------+
+| Explain String                                          |
++---------------------------------------------------------+
+| Estimated Per-Host Requirements: Memory=5.07GB VCores=1 |
+|                                                         |
+| 03:AGGREGATE [MERGE FINALIZE]                           |
+| |  output: sum(count(day))                              |
+| |                                                       |
+| 02:EXCHANGE [UNPARTITIONED]                             |
+| |                                                       |
+| 01:AGGREGATE                                            |
+| |  output: count(day)                                   |
+| |                                                       |
+| 00:SCAN HDFS [bdm27.hits2013]                           |
+|    partitions=12/12 size=351.15GB                       |
++---------------------------------------------------------+
+Returned 12 row(s) in 0.09s
+Query: select count(day) from hits2013  where Year = 2013
++------------+
+| count(day) |
++------------+
+| 5117261513 |
++------------+
+Returned 1 row(s) in 66.74s
+Query: explain select day,ticker,max(lastPrice) as High ,min(lastPrice) as Low  from   hits2013 WHERE ticker="IBM" AND lastPrice IS NOT NULL AND YEAR=2014 AND MONTH=07  GROUP by day,ticker ORDER by day
++----------------------------------------------------------+
+| Explain String                                           |
++----------------------------------------------------------+
+| Estimated Per-Host Requirements: Memory=20.00MB VCores=2 |
+|                                                          |
+| 05:MERGING-EXCHANGE [UNPARTITIONED]                      |
+| |  order by: day ASC                                     |
+| |                                                        |
+| 02:SORT                                                  |
+| |  order by: day ASC                                     |
+| |                                                        |
+| 04:AGGREGATE [MERGE FINALIZE]                            |
+| |  output: max(max(lastPrice)), min(min(lastPrice))      |
+| |  group by: day, ticker                                 |
+| |                                                        |
+| 03:EXCHANGE [HASH(day,ticker)]                           |
+| |                                                        |
+| 01:AGGREGATE                                             |
+| |  output: max(lastPrice), min(lastPrice)                |
+| |  group by: day, ticker                                 |
+| |                                                        |
+| 00:SCAN HDFS [bdm27.hits2013]                            |
+|    partitions=0/12 size=0B                               |
+|    predicates: ticker = 'IBM', lastPrice IS NOT NULL     |
++----------------------------------------------------------+
+Returned 21 row(s) in 0.03s
+Query: select day,ticker,max(lastPrice) as High ,min(lastPrice) as Low  from   hits2013 WHERE ticker="IBM" AND lastPrice IS NOT NULL AND YEAR=2014 AND MONTH=07  GROUP by day,ticker ORDER by day
+
+Returned 0 row(s) in 0.28s
+Query: explain select day,ticker,max(lastPrice) as High ,min(lastPrice) as Low  from   hits2013 WHERE ticker="IBM" AND lastPrice IS NOT NULL AND YEAR=2014  GROUP by day,ticker ORDER by day
++----------------------------------------------------------+
+| Explain String                                           |
++----------------------------------------------------------+
+| Estimated Per-Host Requirements: Memory=20.00MB VCores=2 |
+|                                                          |
+| 05:MERGING-EXCHANGE [UNPARTITIONED]                      |
+| |  order by: day ASC                                     |
+| |                                                        |
+| 02:SORT                                                  |
+| |  order by: day ASC                                     |
+| |                                                        |
+| 04:AGGREGATE [MERGE FINALIZE]                            |
+| |  output: max(max(lastPrice)), min(min(lastPrice))      |
+| |  group by: day, ticker                                 |
+| |                                                        |
+| 03:EXCHANGE [HASH(day,ticker)]                           |
+| |                                                        |
+| 01:AGGREGATE                                             |
+| |  output: max(lastPrice), min(lastPrice)                |
+| |  group by: day, ticker                                 |
+| |                                                        |
+| 00:SCAN HDFS [bdm27.hits2013]                            |
+|    partitions=0/12 size=0B                               |
+|    predicates: ticker = 'IBM', lastPrice IS NOT NULL     |
++----------------------------------------------------------+
+Returned 21 row(s) in 0.02s
+Query: select day,ticker,max(lastPrice) as High ,min(lastPrice) as Low  from   hits2013 WHERE ticker="IBM" AND lastPrice IS NOT NULL AND YEAR=2014  GROUP by day,ticker ORDER by day
+
+Returned 0 row(s) in 0.26s
+Query: explain select distinct a.day FROM hits2013 a INNER JOIN hits2013 b USING (day) WHERE (a.month = 07 AND a.ticker = 'IBM' AND a.lastprice > 200.5) AND (b.month = 07 AND b.ticker = 'T' AND b.lastprice > 35.8)
++---------------------------------------------------------+
+| Explain String                                          |
++---------------------------------------------------------+
+| Estimated Per-Host Requirements: Memory=4.44GB VCores=2 |
+|                                                         |
+| 08:EXCHANGE [UNPARTITIONED]                             |
+| |                                                       |
+| 07:AGGREGATE [MERGE FINALIZE]                           |
+| |  group by: a.day                                      |
+| |                                                       |
+| 06:EXCHANGE [HASH(a.day)]                               |
+| |                                                       |
+| 03:AGGREGATE                                            |
+| |  group by: a.day                                      |
+| |                                                       |
+| 02:HASH JOIN [INNER JOIN, PARTITIONED]                  |
+| |  hash predicates: a.day = b.day                       |
+| |                                                       |
+| |--05:EXCHANGE [HASH(b.day)]                            |
+| |  |                                                    |
+| |  01:SCAN HDFS [bdm27.hits2013 b]                      |
+| |     partitions=1/12 size=28.39GB                      |
+| |     predicates: b.ticker = 'T', b.lastprice > 35.8    |
+| |                                                       |
+| 04:EXCHANGE [HASH(a.day)]                               |
+| |                                                       |
+| 00:SCAN HDFS [bdm27.hits2013 a]                         |
+|    partitions=1/12 size=28.39GB                         |
+|    predicates: a.ticker = 'IBM', a.lastprice > 200.5    |
++---------------------------------------------------------+
+Returned 26 row(s) in 0.03s
+Query: select distinct a.day FROM hits2013 a INNER JOIN hits2013 b USING (day) WHERE (a.month = 07 AND a.ticker = 'IBM' AND a.lastprice > 200.5) AND (b.month = 07 AND b.ticker = 'T' AND b.lastprice > 35.8)
++----------+
+| day      |
++----------+
+| 20130717 |
+| 20130718 |
++----------+
+Returned 2 row(s) in 19.07s
+Query: explain select distinct a.day FROM hits2013 a INNER JOIN hits2013 b USING (day) WHERE (a.ticker = 'IBM' AND a.lastprice > 200.5) AND (b.ticker = 'T' AND b.lastprice > 35.8)
++---------------------------------------------------------+
+| Explain String                                          |
++---------------------------------------------------------+
+| Estimated Per-Host Requirements: Memory=5.07GB VCores=2 |
+|                                                         |
+| 08:EXCHANGE [UNPARTITIONED]                             |
+| |                                                       |
+| 07:AGGREGATE [MERGE FINALIZE]                           |
+| |  group by: a.day                                      |
+| |                                                       |
+| 06:EXCHANGE [HASH(a.day)]                               |
+| |                                                       |
+| 03:AGGREGATE                                            |
+| |  group by: a.day                                      |
+| |                                                       |
+| 02:HASH JOIN [INNER JOIN, PARTITIONED]                  |
+| |  hash predicates: a.day = b.day                       |
+| |                                                       |
+| |--05:EXCHANGE [HASH(b.day)]                            |
+| |  |                                                    |
+| |  01:SCAN HDFS [bdm27.hits2013 b]                      |
+| |     partitions=12/12 size=351.15GB                    |
+| |     predicates: b.ticker = 'T', b.lastprice > 35.8    |
+| |                                                       |
+| 04:EXCHANGE [HASH(a.day)]                               |
+| |                                                       |
+| 00:SCAN HDFS [bdm27.hits2013 a]                         |
+|    partitions=12/12 size=351.15GB                       |
+|    predicates: a.ticker = 'IBM', a.lastprice > 200.5    |
++---------------------------------------------------------+
+Returned 26 row(s) in 0.17s
+Query: select distinct a.day FROM hits2013 a INNER JOIN hits2013 b USING (day) WHERE (a.ticker = 'IBM' AND a.lastprice > 200.5) AND (b.ticker = 'T' AND b.lastprice > 35.8)
++----------+
+| day      |
++----------+
+| 20130311 |
+| 20130524 |
+| 20130227 |
+| 20130617 |
+| 20130404 |
+| 20130313 |
+| 20130325 |
+| 20130618 |
+| 20130607 |
+| 20130326 |
+| 20130502 |
+| 20130417 |
+| 20130321 |
+| 20130516 |
+| 20130717 |
+| 20130408 |
+| 20130416 |
+| 20130305 |
+| 20130411 |
+| 20130612 |
+| 20130409 |
+| 20130501 |
+| 20130418 |
+| 20130528 |
+| 20130213 |
+| 20130314 |
+| 20130507 |
+| 20130613 |
+| 20130530 |
+| 20130304 |
+| 20130315 |
+| 20130415 |
+| 20130405 |
+| 20130520 |
+| 20130517 |
+| 20130718 |
+| 20130503 |
+| 20130327 |
+| 20130606 |
+| 20130308 |
+| 20130529 |
+| 20130614 |
+| 20130318 |
+| 20130515 |
+| 20130611 |
+| 20130430 |
+| 20130604 |
+| 20130521 |
+| 20130306 |
+| 20130220 |
+| 20130228 |
+| 20130509 |
+| 20130320 |
+| 20130510 |
+| 20130322 |
+| 20130410 |
+| 20130522 |
+| 20130506 |
+| 20130523 |
+| 20130328 |
+| 20130514 |
+| 20130312 |
+| 20130412 |
+| 20130401 |
+| 20130513 |
+| 20130301 |
+| 20130508 |
+| 20130610 |
+| 20130225 |
+| 20130402 |
+| 20130619 |
+| 20130319 |
+| 20130403 |
+| 20130307 |
++----------+
+Returned 74 row(s) in 439.71s
